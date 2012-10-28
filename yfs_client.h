@@ -8,6 +8,8 @@
 
 #include "lock_protocol.h"
 #include "lock_client.h"
+#include <map>
+using namespace std;
 
 class yfs_client {
   extent_client *ec;
@@ -36,6 +38,11 @@ class yfs_client {
  private:
   static std::string filename(inum);
   static inum n2i(std::string);
+  static map<string,dirent> string2dir(string);
+  static string append2dir(string,dirent);
+  static inum generate(bool);
+ // int createroot();
+  pthread_mutex_t mutex;
  public:
 
   yfs_client(std::string, std::string);
@@ -45,6 +52,16 @@ class yfs_client {
 
   int getfile(inum, fileinfo &);
   int getdir(inum, dirinfo &);
+
+  int createfile(inum,string,inum&);
+  int createdir(inum,string,inum&);
+
+  int readfile(inum,string&);
+  int writefile(inum,string);
+
+  int readdir(inum,map<string,dirent>&);
+  int lookup(inum,string,dirent&);
+  
 };
 
 #endif 
