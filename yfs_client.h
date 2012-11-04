@@ -39,13 +39,16 @@ class yfs_client {
   static std::string filename(inum);
   static inum n2i(std::string);
   static map<string,dirent> string2dir(string);
+  static string map2string(const map<string,dirent>&);
   static string append2dir(string,dirent);
   static inum generate(bool);
+  lock_client* lc;
  // int createroot();
-  pthread_mutex_t mutex;
+  //pthread_mutex_t mutex;
  public:
 
   yfs_client(std::string, std::string);
+  ~yfs_client();
 
   bool isfile(inum);
   bool isdir(inum);
@@ -58,9 +61,13 @@ class yfs_client {
 
   int readfile(inum,string&);
   int writefile(inum,string);
+  int writefile(inum,const char*buf, size_t size, off_t off);
 
   int readdir(inum,map<string,dirent>&);
   int lookup(inum,string,dirent&);
+  int setattr(inum,size_t);
+  
+  int rmfile(inum,string);
   
 };
 

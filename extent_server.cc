@@ -26,6 +26,7 @@ int extent_server::put(extent_protocol::extentid_t id, std::string buf, int &)
     _attr[id].size=buf.size();
   }else {
     _attr[id].mtime=time(0);
+    _attr[id].ctime=time(0);
     _attr[id].size=buf.size();
   }
   _cont[id] = buf;
@@ -76,6 +77,6 @@ int extent_server::remove(extent_protocol::extentid_t id, int &)
   _attr.erase(_attr.find(id));
   pthread_mutex_unlock(&mutex);
   
-  return extent_protocol::IOERR;
+  return extent_protocol::OK;
 }
 

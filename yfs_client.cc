@@ -14,10 +14,14 @@
 yfs_client::yfs_client(std::string extent_dst, std::string lock_dst)
 {
   ec = new extent_client(extent_dst);
+  lc = new lock_client(lock_dst);
   srand(time(0));
 
 }
-
+yfs_client::~yfs_client() {
+  delete ec;
+  delete lc;
+}
 yfs_client::inum
 yfs_client::n2i(std::string n)
 {
@@ -31,6 +35,14 @@ yfs_client::filename(inum inum)
 {
   std::ostringstream ost;
   ost << inum;
+  return ost.str();
+}
+string yfs_client::map2string(const map<string,yfs_client::dirent>& input) {
+  std::ostringstream ost;
+  map<string,yfs_client::dirent>::const_iterator iter=input.begin();
+  for(; iter!= input.end(); iter++) {
+    ost<<iter->second.name<<"\n"<<iter->second.inum<<"\n";
+  }
   return ost.str();
 }
 map<string,yfs_client::dirent> yfs_client::string2dir(string content) {
@@ -84,6 +96,8 @@ yfs_client::isdir(inum inum)
 int
 yfs_client::getfile(inum inum, fileinfo &fin)
 {
+  lock_protocol::lockid_t mutex=inum;
+  lc->acquire(mutex);
   int r = OK;
   // You modify this function for Lab 3
   // - hold and release the file lock
@@ -102,6 +116,7 @@ yfs_client::getfile(inum inum, fileinfo &fin)
   printf("getfile %016llx -> sz %llu\n", inum, fin.size);
 
  release:
+  lc->release(mutex);
 
   return r;
 }
@@ -135,6 +150,8 @@ yfs_client::setfile(inum inum, fileinfo fin)
 int
 yfs_client::getdir(inum inum, dirinfo &din)
 {
+  lock_protocol::lockid_t mutex=inum;
+  lc->acquire(mutex);
   int r = OK;
   // You modify this function for Lab 3
   // - hold and release the directory lock
@@ -150,6 +167,7 @@ yfs_client::getdir(inum inum, dirinfo &din)
   din.ctime = a.ctime;
 
  release:
+  lc->release(mutex);
   return r;
 }
 
@@ -157,7 +175,8 @@ yfs_client::getdir(inum inum, dirinfo &din)
 int
 yfs_client::createfile(inum parent, string name, inum& result)
 {
-  pthread_mutex_lock(&mutex);
+  lock_protocol::lockid_t mutex=parent;
+  lc->acquire(mutex);
   int r = OK;
   string content,newcontent;
   extent_protocol::attr a;
@@ -188,7 +207,7 @@ yfs_client::createfile(inum parent, string name, inum& result)
   printf("new content:%s\n",newcontent.c_str());
   ec->put(parent,newcontent);
  release:
-  pthread_mutex_unlock(&mutex);
+  lc->release(mutex);
   return r;
 }
 /*
@@ -202,7 +221,8 @@ int yfs_client::createroot() {
 int
 yfs_client::createdir(inum parent, string name, inum& result)
 {
-  pthread_mutex_lock(&mutex);
+  lock_protocol::lockid_t mutex=parent;
+  lc->acquire(mutex);
   int r = OK;
   string content;
   string newid;
@@ -232,12 +252,13 @@ yfs_client::createdir(inum parent, string name, inum& result)
   ec->put(parent,append2dir(content,tmp));
   ec->put(num,"");
  release:
-  pthread_mutex_unlock(&mutex);
+  lc->release(mutex);
   return r;
 }
 
 int yfs_client::readfile(inum fnum, string& result) {
-  pthread_mutex_lock(&mutex);
+  lock_protocol::lockid_t mutex=fnum;
+  lc->acquire(mutex);
   int r = OK;
   if(!isfile(fnum)) {
     r = IOERR;
@@ -248,14 +269,47 @@ int yfs_client::readfile(inum fnum, string& result) {
     goto release;
   }
  release:
-  pthread_mutex_unlock(&mutex);
+  lc->release(mutex);
+  return r;
+}
+
+int
+yfs_client::writefile(inum fnum, const char* buf, size_t size, off_t off) {
+  lock_protocol::lockid_t mutex=fnum;
+  lc->acquire(mutex);
+  int r = OK;
+  string tmp;
+  if(!isfile(fnum)) {
+    r = IOERR;
+    goto release;
+  }  
+  r=ec->get(fnum,tmp);
+  if(r != yfs_client::OK){
+    return IOERR;
+  }
+  if(off+size<=tmp.size()) {
+    tmp.replace(off,size,buf,size);
+  }else if(off<=tmp.size()) {
+    tmp.replace(off,tmp.size()-off,buf,size);
+  }else {
+    int oldsize=tmp.size();
+    for(int i = 0; i < off-oldsize;i++) {
+      tmp.push_back('\0');
+    }
+    tmp.replace(tmp.size(),0,buf,size);
+  }
+  ec->put(fnum,tmp);
+ release:
+  lc->release(mutex);
   return r;
 }
 
 int
 yfs_client::writefile(inum fnum, string content)
 {
-  pthread_mutex_lock(&mutex);
+  lock_protocol::lockid_t mutex=fnum;
+  lc->acquire(mutex);
+  //pthread_mutex_lock(&mutex);
   int r = OK;
   if(!isfile(fnum)) {
     r = IOERR;
@@ -263,11 +317,14 @@ yfs_client::writefile(inum fnum, string content)
   }  
   ec->put(fnum,content);
  release:
-  pthread_mutex_unlock(&mutex);
+  lc->release(mutex);
+  //pthread_mutex_unlock(&mutex);
   return r;
 }
 int yfs_client::readdir(inum dir, map<string,dirent>& result) {
-  pthread_mutex_lock(&mutex);
+  lock_protocol::lockid_t mutex=dir;
+  lc->acquire(mutex);
+  //pthread_mutex_lock(&mutex);
   int r = OK;
   result.clear();
   string content;
@@ -281,12 +338,15 @@ int yfs_client::readdir(inum dir, map<string,dirent>& result) {
   }
   result=string2dir(content);
  release:
-  pthread_mutex_unlock(&mutex);
+  lc->release(mutex);
+  //pthread_mutex_unlock(&mutex);
   return r;
 }
 
 int yfs_client::lookup(inum dir, string name, dirent& result) {
-  pthread_mutex_lock(&mutex);
+  lock_protocol::lockid_t mutex=dir;
+  lc->acquire(mutex);
+  //pthread_mutex_lock(&mutex);
   printf("in lookup %llu/%s\n",dir,name.c_str());
   int r = OK;
   string content;
@@ -305,8 +365,66 @@ int yfs_client::lookup(inum dir, string name, dirent& result) {
     result=string2dir(content)[name];
   }
  release:
-  pthread_mutex_unlock(&mutex);
+  //pthread_mutex_unlock(&mutex);
+  lc->release(mutex);
   printf("look up returns %d\n",r);
   return r;
 }
 
+int yfs_client::rmfile(inum dir,string name) {
+  lock_protocol::lockid_t mutex=dir;
+  lc->acquire(mutex);
+  //pthread_mutex_lock(&mutex);
+  printf("in rmfiles %llu/%s\n",dir,name.c_str());
+  int r = OK;
+  string content;
+  map<string,dirent> buf_map;
+  if(!isdir(dir)) {
+    r = IOERR;
+    goto release;
+  }  
+  if(ec->get(dir,content)!=extent_protocol::OK) {
+    r = IOERR;
+    goto release;
+  }
+  buf_map=string2dir(content);
+  if(buf_map.count(name)==0)
+    r=IOERR;
+  else {
+    buf_map.erase(buf_map.find(name));
+    ec->put(dir,map2string(buf_map));
+    ec->remove(buf_map[name].inum);
+  }
+ release:
+  lc->release(mutex);
+  //pthread_mutex_unlock(&mutex);
+  return r;
+}
+
+int yfs_client::setattr(inum inum,size_t to_size) {
+  lock_protocol::lockid_t mutex=inum;
+  lc->acquire(mutex);
+  int r = OK;
+  string old;
+  if(!isfile(inum)){
+    r = IOERR;
+    goto release;
+  }
+  r=ec->get(inum,old);
+  if(r != yfs_client::OK){
+    r = IOERR;
+    goto release;
+  }
+  if(to_size < old.size())
+    ec->put(inum,old.substr(0,to_size));
+  else if(to_size > old.size()) {
+    int oldsize=old.size();
+    for(int i = 0; i < to_size-oldsize; i++)
+      old.push_back('\0');
+    ec->put(inum,old);
+  }
+  
+ release:
+  lc->release(mutex);
+  return r;
+}
