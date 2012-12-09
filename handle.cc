@@ -22,7 +22,7 @@ handle::safebind()
   sockaddr_in dstsock;
   make_sockaddr(h->m.c_str(), &dstsock);
   rpcc *cl = new rpcc(dstsock);
-  tprintf("handler_mgr::get_handle trying to bind...%s\n", h->m.c_str());
+  //tprintf("handler_mgr::get_handle trying to bind...%s\n", h->m.c_str());
   int ret;
   // handle class has to tolerate lossy network, since we may test
   // students' lab with RPC_LOSSY=5 from lab 1 to lab 5
@@ -32,7 +32,7 @@ handle::safebind()
     delete cl;
     h->del = true;
   } else {
-    tprintf("handle_mgr::get_handle bind succeeded %s\n", h->m.c_str());
+    //tprintf("handle_mgr::get_handle bind succeeded %s\n", h->m.c_str());
     h->cl = cl;
   }
   return h->cl;
@@ -89,10 +89,10 @@ void
 handle_mgr::delete_handle_wo(std::string m)
 {
   if (hmap.find(m) == hmap.end()) {
-    tprintf("handle_mgr::delete_handle_wo: cl %s isn't in cl list\n", m.c_str());
+    //tprintf("handle_mgr::delete_handle_wo: cl %s isn't in cl list\n", m.c_str());
   } else {
-    tprintf("handle_mgr::delete_handle_wo: cl %s refcnt %d\n", m.c_str(),
-	   hmap[m]->refcnt);
+    //tprintf("handle_mgr::delete_handle_wo: cl %s refcnt %d\n", m.c_str(),
+	//   hmap[m]->refcnt);
     struct hinfo *h = hmap[m];
     if (h->refcnt == 0) {
       if (h->cl) {

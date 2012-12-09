@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "lock_protocol.h"
-#include "lock_client.h"
+#include "lock_client_cache.h"
 #include <map>
 using namespace std;
 
@@ -42,8 +42,9 @@ class yfs_client {
   static string map2string(const map<string,dirent>&);
   static string append2dir(string,dirent);
   static inum generate(bool);
+  //lock_client_cache* lc;
   lock_client* lc;
- // int createroot();
+  //int createroot();
   //pthread_mutex_t mutex;
  public:
 

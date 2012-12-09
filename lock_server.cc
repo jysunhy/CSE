@@ -26,7 +26,7 @@ lock_server::stat(int clt, lock_protocol::lockid_t lid, int &r)
 {
   pthread_mutex_lock(mtx);
   lock_protocol::status ret = lock_protocol::OK;
-  printf("stat request from clt %d\n", clt);
+  //printf("stat request from clt %d\n", clt);
   if(!stattable.count(lid)) {
     stattable[lid]=0;
     mutextable[lid]=NULL;
@@ -41,7 +41,7 @@ lock_server::acquire(int clt, lock_protocol::lockid_t lid, int &r)
 {
   pthread_mutex_lock(mtx);
   lock_protocol::status ret = lock_protocol::OK;
-  printf("acquire request from clt %d\n", clt);
+  //printf("acquire request from clt %d\n", clt);
   //printf("acquire request from clt %llu:%d\n", lid,clt);
   if(!stattable.count(lid)) {
     stattable[lid]=0;
@@ -63,11 +63,11 @@ lock_server::release(int clt, lock_protocol::lockid_t lid, int &r)
   pthread_mutex_lock(mtx);
   lock_protocol::status ret = lock_protocol::OK;
   //printf("release request from clt %llu:%d\n", lid,clt);
-  printf("release request from clt %d\n", clt);
+  //printf("release request from clt %d\n", clt);
   if(!stattable.count(lid))
-    ret=lock_protocol::RETRY;
+    ret=lock_protocol::NOENT;
   else if(!mutextable[lid])
-    ret=lock_protocol::RETRY;
+    ret=lock_protocol::NOENT;
   else {
     pthread_mutex_unlock(mutextable[lid]);
     //print_table();

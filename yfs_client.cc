@@ -14,7 +14,8 @@
 yfs_client::yfs_client(std::string extent_dst, std::string lock_dst)
 {
   ec = new extent_client(extent_dst);
-  lc = new lock_client(lock_dst);
+  lc = new lock_client_cache(lock_dst);
+  //lc = new lock_client(lock_dst);
   srand(time(0));
 
 }
@@ -285,7 +286,8 @@ yfs_client::writefile(inum fnum, const char* buf, size_t size, off_t off) {
   }  
   r=ec->get(fnum,tmp);
   if(r != yfs_client::OK){
-    return IOERR;
+    r = IOERR;
+    goto release;
   }
   if(off+size<=tmp.size()) {
     tmp.replace(off,size,buf,size);
@@ -419,7 +421,7 @@ int yfs_client::setattr(inum inum,size_t to_size) {
     ec->put(inum,old.substr(0,to_size));
   else if(to_size > old.size()) {
     int oldsize=old.size();
-    for(int i = 0; i < to_size-oldsize; i++)
+    for(unsigned int i = 0; i < to_size-oldsize; i++)
       old.push_back('\0');
     ec->put(inum,old);
   }
