@@ -556,6 +556,7 @@ rpcs::dispatch(djob_t *j)
 			// if we don't know about this clt_nonce, create a cleanup object
 			if(reply_window_.find(h.clt_nonce) == reply_window_.end()){
 				VERIFY (reply_window_[h.clt_nonce].size() == 0); // create
+				rep_table_[h.clt_nonce]=0; // create
 				jsl_log(JSL_DBG_2,
 						"rpcs::dispatch: new client %u xid %d chan %d, total clients %d\n", 
 						h.clt_nonce, h.xid, c->channo(), (int)reply_window_.size());
@@ -661,8 +662,41 @@ rpcs::checkduplicate_and_update(unsigned int clt_nonce, unsigned int xid,
 		unsigned int xid_rep, char **b, int *sz)
 {
 	ScopedLock rwl(&reply_window_m_);
+	if(rep_table_[clt_nonce] < xid_rep)
+		rep_table_[clt_nonce] = xid_rep;
+	else
+		xid_rep = rep_table_[clt_nonce];
+	//printf("check duplicate clt:xid:xid_rep %d:%d:%d",clt_nonce,xid,xid_rep);
+	while(reply_window_[clt_nonce].size()>0) {
+		if(reply_window_[clt_nonce].front().xid < xid_rep) {
+			free(reply_window_[clt_nonce].front().buf);
+			reply_window_[clt_nonce].pop_front();
+		}else
+			break;
+	}
+	if(xid < xid_rep) 
+		return FORGOTTEN;
+	reply_t tmp(xid);
 
-        // You fill this in for Lab 1.
+	std::list<reply_t>::iterator it = reply_window_[clt_nonce].begin();
+	for(; it != reply_window_[clt_nonce].end(); it++){
+		if(it->xid > xid) {
+			reply_window_[clt_nonce].insert(it,tmp);
+			return NEW;
+		}
+		if(it->xid == xid) {
+			if(it->cb_present) {
+				*b=it->buf;
+				*sz=it->sz;
+				return DONE;
+			}
+			else {
+				return INPROGRESS;
+			}
+		}
+	}
+	
+	reply_window_[clt_nonce].push_back(tmp);	
 	return NEW;
 }
 
@@ -676,7 +710,19 @@ rpcs::add_reply(unsigned int clt_nonce, unsigned int xid,
 		char *b, int sz)
 {
 	ScopedLock rwl(&reply_window_m_);
-        // You fill this in for Lab 1.
+	std::list<reply_t>::iterator it = reply_window_[clt_nonce].begin();
+	for(;it != reply_window_[clt_nonce].end();it++) {
+		if(it->xid == xid) {
+			if(!it->cb_present)
+			{
+				it->buf=b;
+				it->sz=sz;
+				it->cb_present=true;
+			}
+			return;
+		}
+	}
+	return;
 }
 
 void

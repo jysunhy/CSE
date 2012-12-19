@@ -154,7 +154,7 @@ main(int argc, char *argv[])
     setvbuf(stderr, NULL, _IONBF, 0);
     srandom(getpid());
 
-    //jsl_set_debug(2);
+    jsl_set_debug(0);
 
     if(argc < 2) {
       fprintf(stderr, "Usage: %s [host:]port [test]\n", argv[0]);
@@ -234,6 +234,7 @@ main(int argc, char *argv[])
       }
     }
 
+    for (int i = 0; i < nt; i++) delete lc[i];
     printf ("%s: passed all tests successfully\n", argv[0]);
 
 }
