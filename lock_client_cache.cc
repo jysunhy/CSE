@@ -126,6 +126,7 @@ lock_client_cache::release(lock_protocol::lockid_t lid)
     _stats_map[lid]=NONE;
     pthread_mutex_unlock(_lock_map[lid]);
     pthread_mutex_unlock(mtx);
+    _lru->dorelease(lid);
     cl->call(lock_protocol::release,lid, id, r);
     pthread_mutex_lock(mtx);
     _cnt_map[lid]--;
@@ -191,6 +192,7 @@ revk:
     //pthread_mutex_lock(_call_lock_map[lid]);
     //pthread_mutex_unlock(mtx);
     //tprintf("%s will send release for lock %llu\n",id.c_str(),lid);
+    _lru->dorelease(lid);
     cl->call(lock_protocol::release, lid, id, r);
     //pthread_mutex_unlock(_call_lock_map[lid]);
     //tprintf("%s sent release for lock %llu\n",id.c_str(),lid);

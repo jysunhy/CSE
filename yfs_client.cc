@@ -15,6 +15,9 @@ yfs_client::yfs_client(std::string extent_dst, std::string lock_dst)
 {
   ec = new extent_client(extent_dst);
   lc = new lock_client_cache(lock_dst);
+  shy_lock_release_user* _lru = new shy_lock_release_user();
+  _lru->set_ec(ec);
+  ((lock_client_cache*)lc)->_lru = _lru; 
   //lc = new lock_client(lock_dst);
   srand(time(0));
 

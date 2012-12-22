@@ -72,4 +72,15 @@ class yfs_client {
   
 };
 
+class shy_lock_release_user: public lock_release_user {
+ public:
+  void set_ec(extent_client* pec) {
+    ec=pec;
+  }
+  void dorelease(lock_protocol::lockid_t lid) {
+    ec->flush(lid);
+  }
+  extent_client* ec;
+};
+
 #endif 

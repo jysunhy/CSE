@@ -6,6 +6,9 @@
 #include <string>
 #include "extent_protocol.h"
 #include "rpc.h"
+#include <map>
+using namespace std;
+
 
 class extent_client {
  private:
@@ -20,6 +23,11 @@ class extent_client {
 				  extent_protocol::attr &a);
   extent_protocol::status put(extent_protocol::extentid_t eid, std::string buf);
   extent_protocol::status remove(extent_protocol::extentid_t eid);
+  pthread_mutex_t mutex;
+  map<extent_protocol::extentid_t, string> _cont;
+  map<extent_protocol::extentid_t, extent_protocol::attr> _attr;
+  map<extent_protocol::extentid_t, int> _dirty;
+  extent_protocol::status flush(extent_protocol::extentid_t);
 };
 
 #endif 
