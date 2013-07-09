@@ -172,7 +172,8 @@ revk:
    // tprintf("%s receive revoke for lock %llu with client status ACQUIRING\n",id.c_str(),lid);
     //_stats_map[lid]=RELEASING;
     pthread_mutex_unlock(mtx);
-    return rlock_protocol::RPCERR;
+    //return rlock_protocol::RPCERR;
+    goto revk;
     //return rlock_protocol::OK;
   }
   if(_stats_map[lid]==FREE) {

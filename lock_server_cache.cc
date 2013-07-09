@@ -66,7 +66,8 @@ int lock_server_cache::acquire(lock_protocol::lockid_t lid, std::string id,
               tprintf("rpcc client error in revoking\n");
             if(debug)
               tprintf("sending revoke to %s\n",curid.c_str());
-            while(curcl->call(rlock_protocol::revoke,lid,r)!=rlock_protocol::OK)
+            //while(curcl->call(rlock_protocol::revoke,lid,r)!=rlock_protocol::OK)
+            if(curcl->call(rlock_protocol::revoke,lid,r)!=rlock_protocol::OK)
             {
               //sleep(1);
               cout<<"**resending revoke to "<<curid<<endl;
@@ -153,7 +154,8 @@ lock_server_cache::release(lock_protocol::lockid_t lid, std::string id,
                   tprintf("sending revoke to %s\n",curid.c_str());
                 pthread_mutex_unlock(mtx);
                 //sleep(1);
-                while(curcl->call(rlock_protocol::revoke,lid,r)!=rlock_protocol::OK) 
+                //while(curcl->call(rlock_protocol::revoke,lid,r)!=rlock_protocol::OK) 
+                if(curcl->call(rlock_protocol::revoke,lid,r)!=rlock_protocol::OK) 
                 {
                   tprintf("**resending revoke to %s\n",curid.c_str());
                   //sleep(1);

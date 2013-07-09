@@ -206,10 +206,12 @@ yfs_client::createfile(inum parent, string name, inum& result)
   tmp.inum=num;
   tmp.name=name;
   result=num;
+  lc->acquire(num);
   ec->put(num,"");
   newcontent=append2dir(content,tmp);
   printf("new content:%s\n",newcontent.c_str());
   ec->put(parent,newcontent);
+  lc->release(num);
  release:
   lc->release(mutex);
   return r;
@@ -253,8 +255,10 @@ yfs_client::createdir(inum parent, string name, inum& result)
   tmp.inum=num;
   tmp.name=name;
   result=num;
-  ec->put(parent,append2dir(content,tmp));
+  lc->acquire(num);
   ec->put(num,"");
+  ec->put(parent,append2dir(content,tmp));
+  lc->release(num);
  release:
   lc->release(mutex);
   return r;
@@ -396,9 +400,12 @@ int yfs_client::rmfile(inum dir,string name) {
   if(buf_map.count(name)==0)
     r=IOERR;
   else {
+    lock_protocol::lockid_t filelock=buf_map[name].inum;
+    lc->acquire(filelock);
     buf_map.erase(buf_map.find(name));
     ec->put(dir,map2string(buf_map));
     ec->remove(buf_map[name].inum);
+    lc->release(filelock);
   }
  release:
   lc->release(mutex);

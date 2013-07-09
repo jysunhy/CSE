@@ -67,12 +67,12 @@ extent_client::get(extent_protocol::extentid_t eid, std::string &buf)
   }
   if(_dirty.count(eid)==0)
     _dirty[eid]=0;
-  /*if(_dirty[eid]==1)
+  if(_dirty[eid])
   {
     ret=extent_protocol::NOENT;
     pthread_mutex_unlock(&mutex);
     return ret;
-  }*/
+  }
   //can add small improvement for get local removed file
     pthread_mutex_unlock(&mutex);
   ret = cl->call(extent_protocol::get, eid, buf);
@@ -97,12 +97,12 @@ extent_client::getattr(extent_protocol::extentid_t eid,
     pthread_mutex_unlock(&mutex);
     return ret;
   }
-  /*if(_dirty[eid]==1)
+  if(_dirty[eid])
   {
     ret=extent_protocol::NOENT;
     pthread_mutex_unlock(&mutex);
     return ret;
-  }*/
+  }
   pthread_mutex_unlock(&mutex);
   ret = cl->call(extent_protocol::getattr, eid, attr);
   pthread_mutex_lock(&mutex);
